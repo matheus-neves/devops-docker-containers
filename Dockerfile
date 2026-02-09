@@ -7,7 +7,7 @@ COPY .yarn ./.yarn
 
 COPY . .
 
-RUN yarn run build
+RUN yarn build
 RUN yarn cache clean
 
 FROM node:18-alpine3.19
