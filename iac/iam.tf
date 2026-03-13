@@ -12,6 +12,31 @@ resource "aws_iam_openid_connect_provider" "open_id_connect_git" {
   }
 }
 
+resource "aws_iam_role" "app-runner-role" {
+  name = "app-runner-role"
+
+  assume_role_policy = jsonencode({
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": {
+          "Service": "build.apprunner.amazonaws.com"
+        },
+        "Action": "sts:AssumeRole"
+      }
+    ]
+  })
+
+  managed_policy_arns = [
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+  ]
+
+  tags = {
+    IAC = "true"
+  }
+}
+
 resource "aws_iam_role" "ecr-role" {
   name = "ecr-role"
 
@@ -46,6 +71,21 @@ resource "aws_iam_role" "ecr-role" {
       "Statement": [
         {
           "Sid": "Statement1",
+          "Effect": "Allow",
+          "Action": "apprunner:*",
+          "Resource": "*"
+        },
+        {
+          "Sid": "Statement2",
+          "Effect": "Allow",
+          "Action": [
+            "iam:PassRole",
+            "iam:CreateServiceLinkedRole",
+          ],
+          "Resource": "*"
+        },
+        {
+          "Sid": "Statement3",
           "Action": [
             "ecr:GetDownloadUrlForLayer",
             "ecr:BatchGetImage",
@@ -58,7 +98,7 @@ resource "aws_iam_role" "ecr-role" {
           ]
           "Effect": "Allow",
           "Resource": "*"
-        }
+        },
       ]
     })
   }
