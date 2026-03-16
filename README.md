@@ -1,73 +1,126 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+# DevOps Learning Project — CI/CD & Infrastructure as Code
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+> A study project focused on **CI/CD** and **Terraform**. As a Frontend developer (React), I'm exploring DevOps to understand the full software delivery cycle — from code to cloud deployment.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## About the project
 
-## Description
+This repository is a **learning and experimentation environment**. The base application is a NestJS API, but the focus is on infrastructure and the delivery pipeline:
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- **GitHub Actions** — CI/CD without long-lived credentials
+- **Terraform** — Infrastructure as Code on AWS
+- **Docker** — Multi-stage containerization
+- **Amazon ECR** — Private image registry
 
-## Installation
+## Architecture
 
-```bash
-$ yarn install
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│   GitHub        │     │   GitHub Actions │     │   AWS           │
+│   (push main)   │────▶│   CI Pipeline     │────▶│   ECR           │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+                                  │
+                                  │  OIDC (no secrets)
+                                  ▼
+                        ┌──────────────────┐
+                        │   Terraform      │
+                        │   IAM + ECR      │
+                        └──────────────────┘
 ```
 
-## Running the app
+### Pipeline flow
 
-```bash
-# development
-$ yarn run start
+1. **Push to `main` branch** → triggers the workflow
+2. **Tests** → `yarn test` (Jest)
+3. **Image build** → Docker multi-stage (Node 20 Alpine)
+4. **Push to ECR** → authentication via OIDC (GitHub ↔ AWS)
+5. **Tag** → commit SHA (7 characters)
 
-# watch mode
-$ yarn run start:dev
+## Tech stack
 
-# production mode
-$ yarn run start:prod
+| Area | Technology |
+|------|------------|
+| **App** | NestJS, TypeScript, Node 20 |
+| **CI/CD** | GitHub Actions |
+| **IaC** | Terraform (AWS Provider) |
+| **Container** | Docker (multi-stage build) |
+| **Registry** | Amazon ECR |
+| **Auth** | OIDC (OpenID Connect) — no AWS credentials stored |
+
+## Repository structure
+
+```
+├── .github/workflows/
+│   └── ci.yml              # Pipeline: test → build → push ECR
+├── iac/
+│   ├── main.tf              # AWS provider, region
+│   ├── iam.tf               # OIDC provider, roles (ecr-role, app-runner-role)
+│   └── ecr.tf               # ECR repository
+├── Dockerfile               # Multi-stage build
+└── src/                     # NestJS API
 ```
 
-## Test
+## Infrastructure (Terraform)
+
+### Provisioned resources
+
+- **OIDC Provider** — GitHub Actions ↔ AWS integration (trust policy by repo/branch)
+- **IAM Role `ecr-role`** — Permissions for ECR push/pull + App Runner
+- **IAM Role `app-runner-role`** — For future AWS App Runner deployment
+- **ECR Repository** — `ecr-ci-api` with vulnerability scanning on push
+
+### Concepts explored
+
+- **OIDC** — Federated authentication without long-lived secrets
+- **Trust policies** — Restriction via `token.actions.githubusercontent.com:sub`
+- **Least privilege** — Minimum required permissions
+
+## Running locally
+
+### Application
 
 ```bash
-# unit tests
-$ yarn run test
-
-# e2e tests
-$ yarn run test:e2e
-
-# test coverage
-$ yarn run test:cov
+yarn install
+yarn run start:dev
 ```
 
-## Support
+### Tests
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```bash
+yarn test
+```
 
-## Stay in touch
+### Docker (local)
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+```bash
+docker build -t api:local .
+docker run -p 3000:3000 api:local
+```
 
-## License
+## Infrastructure (Terraform)
 
-Nest is [MIT licensed](LICENSE).
+```bash
+cd iac
+terraform init
+terraform plan
+terraform apply
+```
+
+**Prerequisites:** AWS CLI configured, credentials with permission to create IAM and ECR.
+
+## CI configuration
+
+For the pipeline to work, configure in GitHub:
+
+1. **Secret `AWS_ROLE_ARN`** — ARN of the `ecr-role` (e.g. `arn:aws:iam::ACCOUNT_ID:role/ecr-role`)
+2. **Trust policy** — Repository and branch must match the `token.actions.githubusercontent.com:sub` condition in `iam.tf`
+
+## Next steps (learning roadmap)
+
+- [ ] AWS App Runner for automatic deployment
+- [ ] Terraform remote backend (S3 + DynamoDB)
+- [ ] Multi-environment (staging/prod)
+- [ ] Observability (CloudWatch, X-Ray)
+
+---
+
+**Note:** This is a learning project. The NestJS application serves as the base; the focus is on CI/CD and IaC.
