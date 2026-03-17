@@ -49,17 +49,13 @@ jobs:
       run: |
         docker build -t $REGISTRY/ecr-ci-api:$TAG .
         docker push $REGISTRY/ecr-ci-api:$TAG
+        docker tag $REGISTRY/ecr-ci-api:$TAG $REGISTRY/ecr-ci-api:latest
+        docker push $REGISTRY/ecr-ci-api:latest
         IMAGE=$(echo $REGISTRY/ecr-ci-api:$TAG)
         echo "image=$IMAGE" >> $GITHUB_OUTPUT
 
-    - name: Verify App Runner access role secret
-      run: |
-        if [ -z "${{ secrets.AWS_APP_RUNNER_ACCESS_ROLE_ARN }}" ]; then
-          echo "::error::Secret AWS_APP_RUNNER_ACCESS_ROLE_ARN is not set. Add it in repo Settings > Secrets."
-          exit 1
-        fi
-
     - name: Deploy to App Runner
+      id: deploy-app-runner
       uses: awslabs/amazon-app-runner-deploy@main
       with:
         service: ecr-ci-api
@@ -69,6 +65,7 @@ jobs:
         cpu: 1
         memory: 2
         port: 3000
+        wait-for-service-stability-seconds: 180
 
-    # - name: Push docker image
-    #   run: docker push 4592828/ci-api:${{ steps.generate_tag.outputs.sha }}
+    - name: App Runner check
+      run: echo "App Runner running at ${{ steps.deploy-app-runner.outputs.service-url }}"
