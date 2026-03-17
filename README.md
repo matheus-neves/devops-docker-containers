@@ -111,8 +111,9 @@ terraform apply
 
 For the pipeline to work, configure in GitHub:
 
-1. **Secret `AWS_ROLE_ARN`** — ARN of the `ecr-role` (e.g. `arn:aws:iam::ACCOUNT_ID:role/ecr-role`)
-2. **Trust policy** — Repository and branch must match the `token.actions.githubusercontent.com:sub` condition in `iam.tf`
+1. **Secret `AWS_ROLE_ARN`** — ARN of the `ecr-role` (for GitHub Actions: build, push, deploy)
+2. **Secret `AWS_APP_RUNNER_ACCESS_ROLE_ARN`** — ARN of the `app-runner-role` (for App Runner to pull images from ECR)
+3. **Trust policy** — Repository and branch must match the `token.actions.githubusercontent.com:sub` condition in `iam.tf`
 
 ## Next steps (learning roadmap)
 

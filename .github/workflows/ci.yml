@@ -57,7 +57,7 @@ jobs:
       with:
         service: ecr-ci-api
         image: ${{ steps.build-docker-image.outputs.image }}
-        access-role-arn: ${{ secrets.AWS_ROLE_ARN }}
+        access-role-arn: ${{ secrets.AWS_APP_RUNNER_ACCESS_ROLE_ARN }}
         region: us-east-2
         cpu: 1
         memory: 2
