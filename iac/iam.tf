@@ -30,30 +30,6 @@ resource "aws_iam_role" "app-runner-role" {
     "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
   ]
 
-  # Explicit ECR policy - required for App Runner to pull images
-  inline_policy {
-    name = "ecr-access"
-    policy = jsonencode({
-      "Version"   = "2012-10-17"
-      "Statement" = [
-        {
-          "Effect"   = "Allow"
-          "Action"   = "ecr:GetAuthorizationToken"
-          "Resource" = "*"
-        },
-        {
-          "Effect"   = "Allow"
-          "Action" = [
-            "ecr:BatchCheckLayerAvailability",
-            "ecr:GetDownloadUrlForLayer",
-            "ecr:BatchGetImage"
-          ]
-          "Resource" = "arn:aws:ecr:us-east-2:296348348274:repository/ecr-ci-api"
-        }
-      ]
-    })
-  }
-
   tags = {
     IAC = "true"
   }
@@ -66,27 +42,23 @@ resource "aws_iam_role" "ecr-role" {
     "Version" = "2012-10-17"
     "Statement" = [
       {
-        "Effect" = "Allow"
         "Action" = "sts:AssumeRoleWithWebIdentity"
-        "Principal" = {
-          "Federated" = "arn:aws:iam::296348348274:oidc-provider/token.actions.githubusercontent.com"
-        }
         "Condition" = {
           "StringEquals" = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+            "token.actions.githubusercontent.com:sub" = "repo:matheus-neves/devops-docker-containers:ref:refs/heads/main"
           }
-          "StringLike" = {
-            "token.actions.githubusercontent.com:sub" = [
-              "repo:matheus-neves/devops-docker-containers:ref:refs/heads/main"
-            ]
-          }
+        }
+        "Effect" = "Allow"
+        "Principal" = {
+          "Federated" = "arn:aws:iam::296348348274:oidc-provider/token.actions.githubusercontent.com"
         }
       }
     ]
   })
 
   inline_policy {
-    name = "ecr-policy"
+    name = "ecr-app-permission"
 
     policy = jsonencode({
       "Version": "2012-10-17",
