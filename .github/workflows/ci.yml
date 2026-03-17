@@ -52,6 +52,13 @@ jobs:
         IMAGE=$(echo $REGISTRY/ecr-ci-api:$TAG)
         echo "image=$IMAGE" >> $GITHUB_OUTPUT
 
+    - name: Verify App Runner access role secret
+      run: |
+        if [ -z "${{ secrets.AWS_APP_RUNNER_ACCESS_ROLE_ARN }}" ]; then
+          echo "::error::Secret AWS_APP_RUNNER_ACCESS_ROLE_ARN is not set. Add it in repo Settings > Secrets."
+          exit 1
+        fi
+
     - name: Deploy to App Runner
       uses: awslabs/amazon-app-runner-deploy@main
       with:
