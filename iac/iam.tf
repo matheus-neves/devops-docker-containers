@@ -16,14 +16,12 @@ resource "aws_iam_role" "app-runner-role" {
   name = "app-runner-role"
 
   assume_role_policy = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [
+    "Version"   = "2012-10-17"
+    "Statement" = [
       {
-        "Effect": "Allow",
-        "Principal": {
-          "Service": "build.apprunner.amazonaws.com"
-        },
-        "Action": "sts:AssumeRole"
+        "Effect"    = "Allow"
+        "Principal" = { "Service" = "build.apprunner.amazonaws.com" }
+        "Action"    = "sts:AssumeRole"
       }
     ]
   })
@@ -31,6 +29,30 @@ resource "aws_iam_role" "app-runner-role" {
   managed_policy_arns = [
     "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
   ]
+
+  # Explicit ECR policy - required for App Runner to pull images
+  inline_policy {
+    name = "ecr-access"
+    policy = jsonencode({
+      "Version"   = "2012-10-17"
+      "Statement" = [
+        {
+          "Effect"   = "Allow"
+          "Action"   = "ecr:GetAuthorizationToken"
+          "Resource" = "*"
+        },
+        {
+          "Effect"   = "Allow"
+          "Action" = [
+            "ecr:BatchCheckLayerAvailability",
+            "ecr:GetDownloadUrlForLayer",
+            "ecr:BatchGetImage"
+          ]
+          "Resource" = "arn:aws:ecr:us-east-2:296348348274:repository/ecr-ci-api"
+        }
+      ]
+    })
+  }
 
   tags = {
     IAC = "true"
